@@ -1,0 +1,10 @@
+{
+  "name": "discord-bot-redfinger-bluu-store",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "better-sqlite3": "^9.0.0",
+    "discord.js": "^14.15.3",
+    "dotenv": "^17.2.3"
+  }
+}

@@ -1,0 +1,9 @@
+# File Konfigurasi Sensitif
+.env
+
+# Folder Module Node.js
+node_modules/
+
+# File Log atau Database
+*.log
+db.sqlite
