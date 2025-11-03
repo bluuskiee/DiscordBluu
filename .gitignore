@@ -4,6 +4,6 @@
 # Folder Module Node.js
 node_modules/
 
-# File Log atau Database
+# File Log atau Database (Jika menggunakan database sqlite)
 *.log
 db.sqlite
