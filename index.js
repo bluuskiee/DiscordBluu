@@ -19,7 +19,6 @@ const Database = require("better-sqlite3");
 const fs = require("fs");
 const path = require("path");
 
-// --- UTILITAS EMBED DAN ERROR ---
 function sendEmbed(channel, description) {
   try {
     const embed = new EmbedBuilder().setDescription(String(description)).setColor(0x00BFFF);
@@ -50,9 +49,7 @@ function sendSuccessEmbed(channel, description, title = "Sukses") {
         return channel.send({ embeds: [successEmbed] });
     }
 }
-// --- AKHIR UTILITAS EMBED DAN ERROR ---
 
-// --- UTILITAS LAINNYA ---
 function parseDuration(durationStr) {
     const units = {
         s: 1000,
@@ -80,7 +77,6 @@ function getLastDaysStartSQL(days) {
     return `DATE('now', '-${parseInt(days)} days', 'localtime')`;
 }
 
-// --- KONSTANTA BOT ---
 const TOKEN = process.env.TOKEN;
 const LIVE_CHANNEL_ID = process.env.LIVE_CHANNEL_ID;
 const BUY_LOG_CHANNEL_ID = process.env.BUY_LOG_CHANNEL_ID;
@@ -92,8 +88,6 @@ const ALLOWED_ROLES = ["Owner", "Admin"];
 
 const db = new Database(path.join(__dirname, "database.sqlite"));
 db.pragma("journal_mode = WAL");
-
-// --- INISIALISASI TABEL UTAMA ---
 db.prepare(`
 CREATE TABLE IF NOT EXISTS codes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +106,6 @@ CREATE TABLE IF NOT EXISTS sales (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP
 )`).run();
 
-// PERBAIKAN SCHEMA DATABASE UNTUK MENGATASI ERROR 'no such column: seller_id' 
 try {
     db.prepare(`ALTER TABLE sales ADD COLUMN seller_id TEXT`).run();
     console.log("[DB FIX] Kolom 'seller_id' berhasil ditambahkan ke tabel 'sales'.");
@@ -121,7 +114,6 @@ try {
         console.warn("[DB WARNING] Gagal menjalankan ALTER TABLE. Kemungkinan kolom sudah ada atau masalah lain:", e.message);
     }
 }
-// -----------------------------------------------------------------------------
 
 const client = new Client({
   intents: [
@@ -218,9 +210,6 @@ function fetchAndFormatSales(periodType, days, db) {
     return { title, detailPeriod, totalRevenue, totalQty, details };
 }
 
-/** * Fungsi utilitas untuk memformat data Leaderboard (Dipindahkan ke scope global)
- * Ini untuk mencegah SyntaxError: Unexpected token 'else'
- */
 const formatLeaderboard = async (message, data, totalType, isSeller) => {
     let description = "";
     
@@ -230,18 +219,15 @@ const formatLeaderboard = async (message, data, totalType, isSeller) => {
         const total = entry[totalType];
 
         try {
-            // Coba fetch dari member list (lebih handal untuk mendapatkan tag yang benar)
             const member = await message.guild.members.fetch(entry.user_id).catch(() => null);
             
             if (member) {
                 userDisplay = member.user.tag; 
             } else {
-                // Coba fetch dari client user cache jika bukan member guild
                 const user = await client.users.fetch(entry.user_id).catch(() => null);
                 if (user) {
                     userDisplay = user.tag;
                 } else {
-                    // Fallback ke ID mentah dengan label
                     userDisplay = `[ID: ${entry.user_id}] (User Tidak Ditemukan)`; 
                 }
             }
@@ -249,20 +235,17 @@ const formatLeaderboard = async (message, data, totalType, isSeller) => {
             console.error(`Gagal fetch user ID ${entry.user_id}:`, e);
             userDisplay = `[ID: ${entry.user_id}] (Error)`; 
         }
-
-        // Tampilan untuk seller (dengan mention) dan buyer (dengan tag)
-        if (isSeller && userDisplay.startsWith('[')) { // Jika seller dan gagal fetch
+        if (isSeller && userDisplay.startsWith('[')) {
              description += `**#${rank}.** ${userDisplay} - **${total.toLocaleString('id-ID')}** Kode\n`;
-        } else if (isSeller) { // Jika seller dan berhasil fetch (tampilkan mention + tag)
+        } else if (isSeller) {
              description += `**#${rank}.** <@${entry.user_id}> (${userDisplay}) - **${total.toLocaleString('id-ID')}** Kode\n`;
-        } else { // Jika buyer
+        } else {
              description += `**#${rank}.** ${userDisplay} - **${total.toLocaleString('id-ID')}** Kode\n`;
         }
     } 
     return description;
 };
 
-// --- SLAS COMMAND REGISTRATION (Opsional, tapi sebaiknya dibiarkan) ---
 async function registerSlashCommands() {
     const rest = new REST({ version: '10' }).setToken(TOKEN);
     let clientId;
@@ -277,7 +260,6 @@ async function registerSlashCommands() {
 
     try {
         console.log('Mulai MENGHAPUS application (/) commands.');
-        // Hapus semua global dan guild commands
         await rest.put(
             Routes.applicationGuildCommands(clientId, GUILD_ID),
             { body: [] },
@@ -288,7 +270,6 @@ async function registerSlashCommands() {
     }
 }
 
-// --- CLIENT READY EVENT ---
 client.once("ready", async () => {
   console.log(`[BOT] Logged in as ${client.user.tag}`);
   
@@ -347,10 +328,9 @@ async function queryUnusedCodes(type) {
   }
 }
 
-// --- MESSAGE CREATE EVENT ---
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
-  if (!message.content) return; // Mengatasi pesan tanpa konten
+  if (!message.content) return;
     
   const content = message.content.trim();
   const args = content.split(/\s+/);
@@ -361,7 +341,6 @@ client.on("messageCreate", async (message) => {
     member = await message.guild.members.fetch(message.author.id).catch(() => null);
   }
   
-  // --- GUARD: PERMISSION CHECK ---
   const adminCmds = ["!send", "!sendsalebulk", "!addcode", "!import", "!check", "!log", "!addrole", "!mute", "!unmute", "!sales", "!view", "!embed", "!leaderboard", "!lb"]; 
   
   if (adminCmds.includes(cmd) && (!member || !hasPermission(member))) {
@@ -371,7 +350,6 @@ client.on("messageCreate", async (message) => {
       }
   }
 
-  // --- COMMAND !send ---
   if (cmd === "!send") {
     if (args.length < 4)
       return sendErrorEmbed(message.channel, "Format salah. Gunakan: `!send 7d/30d <jumlah> @pembeli`");
@@ -406,7 +384,6 @@ client.on("messageCreate", async (message) => {
       const markUsed = db.prepare("UPDATE codes SET used=1 WHERE id=?");
       for (const c of available) markUsed.run(c.id);
 
-      // Mencatat penjualan dengan seller_id (ID admin/staf)
       db.prepare("INSERT INTO sales (user_id, type, qty, seller_id) VALUES (?, ?, ?, ?)").run(mention.id, type, qty, message.author.id);
 
       sendSuccessEmbed(
@@ -458,7 +435,6 @@ client.on("messageCreate", async (message) => {
     }
   }
 
-  // --- COMMAND !addcode ---
   else if (cmd === "!addcode") {
     if (args.length < 3)
       return sendErrorEmbed(message.channel, "Format salah. Gunakan: `!addcode 7d <kode>` atau `!addcode 30d <kode>`");
@@ -472,7 +448,6 @@ client.on("messageCreate", async (message) => {
     sendSuccessEmbed(message.channel, `Kode baru untuk **${type}** berhasil ditambahkan ke database.`, "Stok Diperbarui");
   }
 
-  // --- COMMAND !import ---
   else if (cmd === "!import") {
     if (args.length < 2)
       return sendErrorEmbed(message.channel, "Format salah. Gunakan: `!import 7d` lalu upload file .txt");
