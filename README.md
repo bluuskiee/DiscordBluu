@@ -1,4 +1,4 @@
-# IKUTIN LANGKAHNHA
+# IKUTIN LANGKAHNYA
 
 ```
 git clone https://github.com/fcknghatezrill/DiscordBluu
